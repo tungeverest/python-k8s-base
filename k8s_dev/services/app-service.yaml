@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-demo-svc
+  namespace: demo-namespace
+spec:
+  type: LoadBalancer
+  selector:
+    app: app
+  ports:
+  - name: app-svc
+    protocol: TCP
+    port: 8080
+    targetPort: 8000
+    nodePort: 30080
+
+  - name: app-debug-svc-2
+    protocol: TCP
+    port: 8085
+    targetPort: 8085
+    nodePort: 30085

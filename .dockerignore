@@ -1,0 +1,17 @@
+*.dockerignore
+*Dockerfile
+*Dockerfile.dev
+*Dockerfile.devspace
+.git
+.vscode
+.pyc
+.pyo
+README.md
+README_DEV.md
+k8s
+k8s_dev
+.github
+*devspace.yaml
+.devspace/
+*.log
+.idea/

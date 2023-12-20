@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "sota-vicg-be"
+version = "0.1.0"
+description = "FastAPI Core Base"
+authors = ["Tung Tran <tttung.everest@outlook.com>"]
+readme = "README.md"
+
+
+[tool.poetry.dependencies]
+python = "~3.8"
+fastapi = "*"
+httpx = "*"
+uvicorn = "*"
+gunicorn = "*"
+python-dotenv = "*"
+google-cloud-storage = "*"
+google-cloud-logging = "*"
+google-cloud-datastore = "*"
+google-cloud-pubsub = "*"
+google-gax = "*"
+google-api-core = "*"
+pyhamcrest = "^2.1.0"
+pydantic-settings = "^2.1.0"
+redis = "^5.0.1"
+sqlalchemy = "^2.0.23"
+psycopg2-binary = "^2.9.9"
+retry = "^0.9.2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+pytest = "*"
+coverage = "*"
+pytest_httpx = "*"
+pytest-asyncio = "*"
+pytest-mock = "*"
+
+
+[build-system]
+requires = ["poetry-core>=1.7.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,61 @@
+FROM python:3.8-slim-bookworm as python-base
+
+LABEL maintainer="Tony Tran <tung.tran2@sotatek.com>"
+WORKDIR /app
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=0 \
+    POETRY_VIRTUALENVS_IN_PROJECT=false \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+RUN pip install --upgrade pip && pip install --no-cache-dir poetry==1.7 debugpy
+
+
+# ----------------------------
+# Multi Build from base image
+FROM python-base
+WORKDIR /app
+
+# Install Deps
+COPY ./pyproject.toml ./poetry.lock* ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
+
+
+ARG REBUILD_IMAGE
+
+ENV ENV local
+ENV IS_LOCAL_CLUSTER 1
+
+ARG PROJECT_ID
+ENV PROJECT_ID $PROJECT_ID
+ENV CLOUDSDK_CORE_PROJECT $PROJECT_ID
+ENV GOOGLE_CLOUD_PROJECT $PROJECT_ID
+ENV STORAGE_EMULATOR_HOST http://storage-svc:9023
+
+ENV PUBSUB_PROJECT_ID $PROJECT_ID
+ENV PUBSUB_EMULATOR_HOST pubsub-svc:6066
+
+ENV DATASTORE_DATASET $PROJECT_ID
+ENV DATASTORE_PROJECT_ID $PROJECT_ID
+ENV DATASTORE_EMULATOR_HOST datastore-svc:6067
+ENV DATASTORE_EMULATOR_HOST_PATH datastore-svc:6067/datastore
+
+COPY ./main.py ./
+ADD devspace devspace
+ADD gcloud gcloud
+ADD .env .
+ADD migrations migrations
+ADD core core
+ADD tests tests
+ADD src src
+
+
+# CMD ["python", "-m", "debugpy", "--wait-for-client", "--listen", "0.0.0.0:8085", "-m", "flask", "run", "--debugger", "-h", "0.0.0.0", "-p", "8000", "--reload"]
+# CMD  ["python", "-m", "debugpy", "--wait-for-client", "--listen", "0.0.0.0:8085", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD  ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+EXPOSE 8000

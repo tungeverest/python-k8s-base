@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresdb-conf-map
+  namespace: demo-namespace
+  labels:
+    app: postgresdb
+data:
+  POSTGRES_DB: test
+  POSTGRES_USER: wesang
+  POSTGRES_PASSWORD: wesang

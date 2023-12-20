@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  namespace: demo-namespace
+  labels:
+    app: redis
+spec:
+  containers:
+  - name: redis
+    image: redis:7-alpine
+    command:
+    - redis-server
+    args: ["/redis-master/redis.conf", "--requirepass", "wesang"]
+    env:
+    - name: MASTER
+      value: "true"
+    - name: REDIS_PASSWORD
+      valueFrom:
+        configMapKeyRef:
+          name: redis-configmap
+          key: REDIS_PASSWORD
+    ports:
+    - containerPort: 6379
+    volumeMounts:
+    - mountPath: /redis-master-data
+      name: data
+    - mountPath: /redis-master
+      name: config
+  volumes:
+  - name: data
+    emptyDir: {}
+  - name: config
+    configMap:
+      name: redis-configmap
+      items:
+      - key: redis-config
+        path: redis.conf

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pubsub-emulators-deployment
+  namespace: demo-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pubsub-emulators
+  template:
+    metadata:
+      labels:
+        app: pubsub-emulators
+    spec:
+      containers:
+      - name: pubsub-emulators-devspace
+        image: localhost:5000/yogiyo-gcloud-emulators-local:pubsub
+        imagePullPolicy: IfNotPresent
+        command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port", "0.0.0.0:6066"]
+        ports:
+        - protocol: TCP
+          containerPort: 6066
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datastore-emulators-deployment
+  namespace: demo-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datastore-emulators
+  template:
+    metadata:
+      labels:
+        app: datastore-emulators
+    spec:
+      containers:
+      - name: datastore-emulators-devspace
+        image: localhost:5000/yogiyo-gcloud-emulators-local:datastore
+        imagePullPolicy: IfNotPresent
+        command: ["gcloud", "beta", "emulators", "datastore", "start", "--host-port", "0.0.0.0:6067"]
+        ports:
+        - protocol: TCP
+          containerPort: 6067
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-emulators-deployment
+  namespace: demo-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-emulators
+  template:
+    metadata:
+      labels:
+        app: storage-emulators
+    spec:
+      containers:
+      - name: storage-emulators-devspace
+        image: "localhost:5000/yogiyo-gcloud-emulators-local:storage"
+        imagePullPolicy: IfNotPresent
+        command: ["gcp-storage-emulator", "start", "--host=0.0.0.0", "--port=9023"]
+        ports:
+        - protocol: TCP
+          containerPort: 9023

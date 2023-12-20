@@ -1,0 +1,148 @@
+version: "3"
+services:
+  app:
+    container_name: demo-app-devspace
+    build:
+      context: .
+      dockerfile: devspace/Dockerfile.devspace
+      args:
+        PROJECT_ID: $PROJECT_ID
+    env_file:
+      - .env
+    environment:
+      - IS_MACOS=true
+      - IS_LOCAL_CLUSTER=1
+      - ENV=local
+      - _ENV=LOCAL
+    ports:
+      - "8080:8000"
+      - "8085:8085"
+    volumes:
+      - .:/app
+    command: ["sh", "-c", "pip install debugpy && python -m debugpy --wait-for-client --listen 0.0.0.0:8085 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+    healthcheck:
+      test: ['CMD-SHELL', 'python devspace/test/test_emulators_connection.py']
+      interval: 20s
+      timeout: 10s
+      retries: 2
+    networks:
+      - demo-net
+    working_dir: /app
+    depends_on:
+      postgresdb-svc:
+        condition: service_healthy
+      redis-svc:
+        condition: service_healthy
+      pubsub-svc:
+        condition: service_healthy
+      storage-svc:
+        condition: service_healthy
+      datastore-svc:
+        condition: service_healthy
+
+  postgresdb-svc:
+    image: postgres:16-bookworm
+    container_name: postgresdb-devspace
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: wesang
+      POSTGRES_PASSWORD: wesang
+    volumes:
+      - postgresdata:/var/lib/postgres/data
+    networks:
+      - demo-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 10s
+      retries: 2
+
+  redis-svc:
+    image: redis:7-bookworm
+    container_name: redis-devspace
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/redis-master-data
+    environment:
+      REDIS_PASSWORD: wesang
+    networks:
+      - demo-net
+    command: redis-server --loglevel warning --requirepass wesang
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 2
+
+  storage-svc:
+    image: yogiyo-gcloud-emulators-local:latest
+    container_name: storage-emulators-devspace
+    restart: always
+    environment:
+      IS_MACOS: true
+    ports:
+      - "9023:9023"
+    volumes:
+      - ./gcloud/:/emulators
+    networks:
+      - demo-net
+    command: ["gcp-storage-emulator", "start", "--host=0.0.0.0", "--port=9023"]
+    healthcheck:
+      test: ['CMD-SHELL', "ls"]
+      interval: 5s
+      timeout: 10s
+      retries: 2
+
+  pubsub-svc:
+    image: yogiyo-gcloud-emulators-local:latest
+    container_name: pubsub-emulators-devspace
+    restart: always
+    environment:
+      IS_MACOS: true
+    ports:
+      - "6066:6066"
+    volumes:
+      - ./gcloud/:/emulators
+    networks:
+      - demo-net
+    command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:6066"]
+    healthcheck:
+      test: ['CMD-SHELL', "gcloud beta emulators pubsub env-init"]
+      interval: 5s
+      timeout: 10s
+      retries: 2
+
+  datastore-svc:
+    image: yogiyo-gcloud-emulators-local:latest
+    container_name: datastore-emulators-devspace
+    restart: always
+    working_dir: /emulators
+    environment:
+      IS_MACOS: true
+    ports:
+      - "6067:6067"
+    volumes:
+      - ./gcloud/:/emulators
+    networks:
+      - demo-net
+    command: ["gcloud", "beta", "emulators", "datastore", "start", "--host-port=0.0.0.0:6067"]
+    healthcheck:
+      test: ['CMD-SHELL', "gcloud beta emulators datastore env-init"]
+      interval: 5s
+      timeout: 10s
+      retries: 2
+
+networks:
+  demo-net:
+    driver: bridge
+
+volumes:
+  postgresdata:
+    driver: local
+  redis_data:
+    driver: local

@@ -1,0 +1,14 @@
+*.pyc
+.gitignore
+.git
+env/
+venv/
+tools/
+docs/
+.vscode/
+.tox/
+.cache/
+.github/
+Pipfile
+Pipfile.lock
+.devspace/

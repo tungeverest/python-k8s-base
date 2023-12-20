@@ -1,0 +1,240 @@
+version: v2beta1
+name: python-k8s-base
+
+require:
+  devspace: '>= 6.3, < 7.0'
+
+vars:
+  # Load .env in devspace context when start running pipelines
+  DEVSPACE_ENV_FILE: ".env"
+  DEVSPACE_FLAGS: "-n demo-namespace"
+  IMAGE_TAG_1: dev-latest
+  CLIENT_DEV_IMAGE: localhost:5000/app-demo-devspace
+
+dependencies:
+  gcloud-emulators-dependency:
+    path: ./gcloud/
+    disabled: false # is require this dependencies
+    overwriteVars: false
+    ignoreDependencies: false # dependencies of dependencies
+    pipeline: dev # Name pipeline of pipelines dependency run default
+    namespace: ${DEVSPACE_NAMESPACE}
+    vars:
+      PROJECT_ID: ${PROJECT_ID}
+
+deployments:
+  config:
+    kubectl:
+      manifests:
+        - k8s_dev/config/demo-secrets.yaml
+        - k8s_dev/config/redis-conf.yaml
+
+  volumes:
+    kubectl:
+      manifests:
+        - k8s_dev/volumes/postgresdb-pv.yaml
+        - k8s_dev/volumes/postgresdb-pvc.yaml
+
+  postgres:
+    kubectl:
+      manifests:
+        - k8s_dev/deployments/postgresdb-deploy.yaml
+        - k8s_dev/services/postgresdb-service.yaml
+
+  redis:
+    kubectl:
+      manifests:
+        - k8s_dev/deployments/redis-pod.yaml
+        - k8s_dev/services/redis-service.yaml
+
+  app:
+    kubectl:
+      manifests:
+        - k8s_dev/deployments/app-deploy.yaml
+        - k8s_dev/services/app-service.yaml
+
+functions:
+  build-image: |-
+    build_images "$@"
+    docker push ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
+    minikube image ls
+
+pipelines:
+  build-dev: # devspace run-pipeline build-dev
+    run: |-
+      build-image app-dev
+      devspace reset pods
+
+  rebuild-dev: # devspace run-pipeline rebuild-dev
+    run: |-
+      minikube image rm ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
+      build-image app-dev
+      devspace reset pods
+
+  reload-pod: # Reload pod of devImage : devspace run-pipeline reload-pod
+    run: |-
+      devspace reset pods
+
+  dev:
+    #  `devspace dev` (or `devspace run-pipeline dev`) to run development mode in local
+    run: |-
+      # run_dependencies gcloud-emulators-dependency
+      create_deployments config
+      create_deployments volumes
+      create_deployments postgres
+      create_deployments redis
+      create_deployments app
+      start_dev app --disable-pod-replace
+
+  deploy:
+    # `devspace deploy` (or `devspace run-pipeline deploy`)
+    run: |-
+      # run_dependencies gcloud-emulators-dependency
+      build-image app-dev
+      create_deployments config
+      create_deployments volumes
+      create_deployments postgres
+      create_deployments redis
+      create_deployments app
+      start_dev app
+
+  purge-app: # Purge pod of app: devspace run-pipeline purge-app
+    run: |-
+      purge_deployments app
+
+  purge-volumes: # Purge pod of app: devspace run-pipeline purge-volumes
+    run: |-
+      purge_deployments volumes
+
+images:
+  # app:
+  #   image: demo-app
+  #   tags:
+  #     - ${IMAGE_TAG_1}
+  #   dockerfile: ${DOCKER_FILE_NAME}
+  #   context: ./
+  #   rebuildStrategy: default
+  #   buildArgs: # Use for pipeline build-app
+  #     CI_USER_TOKEN: ${CI_USER_TOKEN}
+  #     PROJECT_ID: ${PROJECT_ID}
+  #     REBUILD_IMAGE: ${REBUILD_IMAGE}
+  #   docker:
+  #     disableFallback: true
+  #     preferMinikube: false
+
+  app-dev:
+    image: ${CLIENT_DEV_IMAGE}
+    tags:
+      - ${IMAGE_TAG_1}
+    dockerfile: ${DOCKER_FILE_NAME_DEVSPACE}
+    context: ./
+    rebuildStrategy: default
+    buildArgs: # Use for pipeline build-app-dev
+      CI_USER_TOKEN: ${CI_USER_TOKEN}
+      PROJECT_ID: ${PROJECT_ID}
+      REBUILD_IMAGE: ${REBUILD_IMAGE}
+    docker:
+      disableFallback: true
+      preferMinikube: false
+
+dev: # DEV MODE Configuration
+  app: # Prime dev mode
+    namespace: ${DEVSPACE_NAMESPACE}
+    imageSelector: ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
+    # Replace the container image with this dev-optimized image
+    devImage: ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
+    workingDir: /app
+    sync:
+      # https://www.devspace.sh/docs/configuration/dev/connections/file-sync
+      # Sync files between the localPath:remotePath Pod
+      - path: ./
+        initialSync: mirrorLocal
+        waitInitialSync: true
+        printLogs: true
+        excludePaths:
+          - "*.devspace"
+          - k8s
+          - k8_dev
+          - .github
+          - .git
+          - docs
+          - scripts
+          - "*__pycache__"
+        onUpload:
+          restartContainer: false
+
+    ports: # forward:
+      - port: "8080:8000"
+      - port: "8085:8085"
+
+    ssh:
+      # https://www.devspace.sh/docs/configuration/dev/connections/ssh
+      # Inject a lightweight SSH server into the container" dev run ssh-app
+      enabled: true
+      localHostname: app.demo.devspace
+      localPort: 10333
+
+    proxyCommands:
+      # https://www.devspace.sh/docs/configuration/dev/connections/proxy-commands
+      # Make the following commands from my local machine available inside the dev container
+      - command: devspace
+
+    open: # Auto open url on browser
+      # DevSpace UI
+      - url: http://localhost:8090
+
+hooks:
+- command: |
+    python devspace/test/test_emulators_connection.py
+  container:
+    imageSelector: ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
+  events: ["after:initialSync:app"]
+  name: "Test Connection Emulators, Redis"
+
+commands:
+    registry-up:
+      description: "Port forward to allow docker push Registry Addon"
+      command: |-
+        kubectl port-forward --namespace kube-system service/registry 5000:80
+
+    registry-proxy:
+      description: "Port forward to allow docker push Registry Addon"
+      command: |-
+        docker run -d --name=registry-proxy-demo --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+
+    create-emulators:
+      description: "Create new gcloud emulators"
+      command: |-
+        cd gcloud && devspace run-pipeline deploy-emulators
+
+    refix:
+      description: "Remove .devspace cached to rematching emulator pods"
+      command: |-
+        minikube image tag localhost:5000/yogiyo-gcloud-emulators-local:pubsub localhost:5000/yogiyo-gcloud-emulators-local:datastore
+        minikube image tag localhost:5000/yogiyo-gcloud-emulators-local:pubsub localhost:5000/yogiyo-gcloud-emulators-local:storage
+        cd gcloud && rm -rf .devspace && devspace dev
+
+    ssh-app:
+      description: "Go to server: devspace run ssh-app"
+      command: |-
+        eval "$(ssh-agent -s)"
+        ssh app.demo.devspace
+
+    flake8:
+      description: "Lint flake8 ."
+      command: |-
+        eval "$(ssh-agent -s)"
+        ssh app.demo.devspace 'mkdir -p tmp'
+        ssh app.demo.devspace 'flake8 . > tmp/flake-output.txt' | cat tmp/flake-output.txt
+
+    migration-db:
+      description: "Migrate Database: devspace run migration-db"
+      command: |-
+        eval "$(ssh-agent -s)"
+        ssh app.demo.devspace python manage.py db upgrade
+
+    vscode-remote:
+      description: "Open VSCode remote attach app with new window code by command: devspace run vscode-remote"
+      command: |-
+        eval "$(ssh-agent -s)"
+        code --folder-uri vscode-remote://ssh-remote+app.demo.devspace/app/

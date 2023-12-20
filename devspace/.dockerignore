@@ -1,0 +1,12 @@
+*.dockerignore
+Dockerfile.dev
+Dockerfile.devspace
+*.git
+*.vscode
+*.pyc
+*.pyo
+*.github
+*devspace.yaml
+*.devspace/
+*.log
+*.idea/

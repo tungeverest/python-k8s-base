@@ -1,0 +1,42 @@
+Docker UI:
+- Portainer.io
+docker run -d -p 8000:8000 -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+http://localhost:9000
+
+- Docker Desktop (Heavy) || Podman Desktop (Lighting)
+- Docker extentions of VScode ()
+
+- Create Kubernetes Cluster and Node:
+Minikube (Easy to learn) || Kind (Difficult setup && config and More flexible)
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube version
+
+# https://kind.sigs.k8s.io/docs/user/quick-start/#installation
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.19.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+
+
+
+Kubernetes Dashboard:
+- Kubernetes Dashboard | Minikube Default
+minikube dashboard
+// OR
+https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+kubectl proxy
+
+- Headlamp (Recommend easy to usage)
+https://flatpak.org/setup/
+
+flatpak install io.kinvolk.Headlamp
+flatpak run io.kinvolk.Headlamp
+
+- OpenLens Opensource:
+flatpak install flathub dev.k8slens.OpenLens
+flatpak run dev.k8slens.OpenLens
+
+- VSCode extentions: (Recommend easy to usage)
+Kubernetes || Kubernetes Kind || Google Cloud Code

@@ -1,0 +1,95 @@
+version: v2beta1
+name: gcloud-emulators-projects
+
+require:
+  devspace: '>= 6.3, < 7.0'
+
+vars:
+  DEVSPACE_FLAGS: "-n demo-namespace"
+  EMULATORS_IMAGE: localhost:5000/yogiyo-gcloud-emulators-local
+  DEVSPACE_ENV_FILE: ".env.dev"
+
+images:
+  gcloud-emulators:
+    image: ${EMULATORS_IMAGE}
+    tags:
+    - pubsub
+    - datastore
+    - storage
+    dockerfile: ./Dockerfile
+    context: ./
+    rebuildStrategy: ignoreContextChanges
+    buildArgs:
+      PROJECT_ID: ${PROJECT_ID}
+    docker:
+      disableFallback: true
+      preferMinikube: false
+
+deployments:
+  gcloud-emulators:
+    kubectl:
+      manifests:
+      - k8s_dev/emulators-deployment.yaml
+      - k8s_dev/emulators-service.yaml
+
+functions:
+  build-image-emulators: |-
+    build_images gcloud-emulators
+    docker push ${EMULATORS_IMAGE}:pubsub
+
+  start-emulators: |-
+    start_dev --disable-pod-replace pubsub-emulators
+    sleep 3
+    start_dev --disable-pod-replace datastore-emulators
+    sleep 3
+    start_dev --disable-pod-replace storage-emulators
+
+pipelines:
+  build-emulators:
+    run: |-
+      build-image-emulators
+      minikube image tag ${EMULATORS_IMAGE}:pubsub ${EMULATORS_IMAGE}:datastore
+      minikube image tag ${EMULATORS_IMAGE}:pubsub ${EMULATORS_IMAGE}:storage
+      minikube image ls
+
+  dev:
+    run: |-
+      create_deployments gcloud-emulators
+      start-emulators
+
+  deploy-emulators:
+    run: |-
+      build-image-emulators
+      create_deployments gcloud-emulators
+      start-emulators
+
+dev:
+  pubsub-emulators:
+    namespace: ${DEVSPACE_NAMESPACE}
+    imageSelector: ${EMULATORS_IMAGE}:pubsub
+    devImage: ${EMULATORS_IMAGE}:pubsub
+
+  datastore-emulators:
+    namespace: ${DEVSPACE_NAMESPACE}
+    imageSelector: ${EMULATORS_IMAGE}:datastore
+    devImage: ${EMULATORS_IMAGE}:datastore
+
+  storage-emulators:
+    namespace: ${DEVSPACE_NAMESPACE}
+    imageSelector: ${EMULATORS_IMAGE}:storage
+    workingDir: /emulators
+    devImage: ${EMULATORS_IMAGE}:storage
+    sync:
+    - path: ./:/emulators
+      initialSync: preferNewest
+      waitInitialSync: true
+      printLogs: true
+      excludePaths:
+      - "*.devspace"
+      - k8_dev
+      - .github
+      - .git
+      - "*__pycache__"
+      uploadExcludeFile: .dockerignore
+      onUpload:
+        restartContainer: false

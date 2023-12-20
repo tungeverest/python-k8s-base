@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-demo-deploy
+  namespace: demo-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+      - name: app
+        image: localhost:5000/app-demo-devspace:dev-latest
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+        envFrom:
+        - secretRef:
+            name: demo-secrets
+        ports:
+        - protocol: TCP
+          containerPort: 8000 # App origin port
+        - protocol: TCP
+          containerPort: 8085 # Port Debugger
+
+        # startupProbe:
+        #   initialDelaySeconds: 20
+        #   timeoutSeconds: 2
+        #   successThreshold: 1
+        #   failureThreshold: 10
+        #   periodSeconds: 5
+        #   httpGet:
+        #     path: /api/v1/status/check-health
+        #     port: 8000
+
+        # readinessProbe:
+        #   timeoutSeconds: 3
+        #   successThreshold: 1
+        #   failureThreshold: 5
+        #   periodSeconds: 15
+        #   httpGet:
+        #     path: /api/v1/status/readiness
+        #     port: 8000
+
+        # livenessProbe:
+        #   timeoutSeconds: 3
+        #   successThreshold: 1
+        #   failureThreshold: 5
+        #   periodSeconds: 5
+        #   httpGet:
+        #     path: /api/v1/status/liveness
+        #     port: 8000
