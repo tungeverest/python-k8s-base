@@ -10,3 +10,4 @@ Dockerfile.devspace
 *.devspace/
 *.log
 *.idea/
+poetry.toml
