@@ -9,9 +9,9 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 3Gi
+    storage: 4Gi
   # A db can write and read from volumes to multiple pods
   accessModes:
   - ReadWriteMany
   hostPath:
-    path: "/data/postgresql"
+    path: "/var/lib/postgresql/data"
