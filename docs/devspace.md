@@ -12,9 +12,9 @@ devspace version
 
 ## DevSpace alternatives
 
-- Okteto: https://github.com/okteto/okteto
+- Okteto: <https://github.com/okteto/okteto>
 - Garden.io
-- Tilt: https://tilt.dev
+- Tilt: <https://tilt.dev>
 
 ---
 
@@ -61,4 +61,4 @@ Analyzes the kubernetes namespace and check for potential problems
   >`devspace use context demo-cluster`
   >`devspace use namespace demo-namespace`
 SSH to POD
-  >`ssh app.demo.devspace` or `devspace run ssh-app`
+  >`ssh app.kube-demo.devspace` or `devspace run ssh-app`
