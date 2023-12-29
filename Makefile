@@ -1,3 +1,7 @@
+# Install Make in Ubuntu| Debain
+# sudo apt install make
+# make -version
+
 # commit without precommit
 # git commit . -m 'message...' --no-verify
 pre-commit: # make pre-commit
