@@ -1,5 +1,5 @@
 version: v2beta1
-name: python-k8s-base
+name: kube-demo
 
 require:
   devspace: '>= 6.3, < 7.0'
@@ -78,6 +78,7 @@ pipelines:
   start-local:
     #  devspace run-pipeline start-local to run development mode in local
     run: |-
+      run_dependencies gcloud-emulators-dependency
       create_deployments app
       start_dev app --disable-pod-replace
 
@@ -88,7 +89,7 @@ pipelines:
       create_deployments config
       create_deployments volumes
       create_deployments postgres
-      create_deployments redisdevspace run-pipeline reload-pod
+      create_deployments redis
       create_deployments app
       start_dev app --disable-pod-replace
 
@@ -157,8 +158,9 @@ dev: # DEV MODE Configuration
 
     ssh:
       enabled: true
-      localHostname: app.demo.devspace
+      localHostname: app.kube-demo.devspace
       localPort: 10333
+      useInclude: true
 
     proxyCommands:
       - command: devspace
@@ -179,7 +181,7 @@ commands:
     registry-proxy:
       description: "Port forward to allow docker push Registry Addon"
       command: |-
-        docker run -d --name=registry-proxy-demo --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+        docker run -d --rm --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
 
     create-emulators:
       description: "Create new gcloud emulators"
@@ -197,23 +199,23 @@ commands:
       description: "Go to server: devspace run ssh-app"
       command: |-
         eval "$(ssh-agent -s)"
-        ssh app.demo.devspace
+        ssh app.kube-demo.devspace
 
     flake8: # devspace run flake8
       description: "Lint flake8 ."
       command: |-
         eval "$(ssh-agent -s)"
-        ssh app.demo.devspace 'mkdir -p tmp'
-        ssh app.demo.devspace 'flake8 . > tmp/flake-output.txt' | cat tmp/flake-output.txt
+        ssh app.kube-demo.devspace 'mkdir -p tmp'
+        ssh app.kube-demo.devspace 'flake8 . > tmp/flake-output.txt' | cat tmp/flake-output.txt
 
     migration-db: # devspace run migration-db
       description: "Migrate Database: devspace run migration-db"
       command: |-
         eval "$(ssh-agent -s)"
-        ssh app.demo.devspace python manage.py db upgrade
+        ssh app.kube-demo.devspace python manage.py db upgrade
 
     vscode-remote: # devspace run vscode-remote
       description: "Open VSCode remote attach app with new window code by command: devspace run vscode-remote"
       command: |-
         eval "$(ssh-agent -s)"
-        code --folder-uri vscode-remote://ssh-remote+app.demo.devspace/app/
+        code --folder-uri vscode-remote://ssh-remote+app.kube-demo.devspace/app/

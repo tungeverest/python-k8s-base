@@ -40,7 +40,7 @@
 devspace run vscode-remote
 // OR
 eval "$(ssh-agent -s)"
-code --folder-uri vscode-remote: //ssh-remote+app.demo.devspace/app/
+code --folder-uri vscode-remote: //ssh-remote+app.kube-demo.devspace/app/
 
 Install extention for python in new window remote k8s.
 

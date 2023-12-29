@@ -1,4 +1,5 @@
 import http
+import random
 
 from core.configs.core import CoreSettings
 from fastapi import APIRouter, Depends
@@ -26,10 +27,19 @@ async def check_health(
 async def liveness(
     settings: CoreSettings = Depends(get_settings),
 ) -> JSONResponse:
+
+    x = random.randint(0, 10)
+    if x > 6:
+        result = "OK"
+        print(result)
+    else:
+        result = "NOT OK"
+        print(result)
+    print("Done")
     return JSONResponse(
         status_code=http.HTTPStatus.OK,
         content={
-            "status": "OK",
+            "status": result,
             "name": settings.PROJECT_NAME,
             "version": settings.APP_VERSION,
         },

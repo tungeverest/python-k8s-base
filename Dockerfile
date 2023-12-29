@@ -11,6 +11,17 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100
 
+# Install dependencies
+RUN apt-get update -y && apt-get install -y \
+    ca-certificates wget jq curl git nano gettext \
+    chrpath iputils-ping postgresql-client \
+    procps shared-mime-info mime-support
+RUN apt-get install -y --no-install-recommends build-essential \
+    libxft-dev libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev \
+    libffi-dev libjpeg-dev libpq-dev libssl-dev libtiff-dev libwebp-dev zlib1g-dev
+# Cleanup apt cache
+RUN apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir poetry==1.7
 
 
