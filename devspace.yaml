@@ -75,21 +75,27 @@ pipelines:
     run: |-
       devspace reset pods
 
+  start-local:
+    #  devspace run-pipeline start-local to run development mode in local
+    run: |-
+      create_deployments app
+      start_dev app --disable-pod-replace
+
   dev:
     #  `devspace dev` (or `devspace run-pipeline dev`) to run development mode in local
     run: |-
-      # run_dependencies gcloud-emulators-dependency
+      run_dependencies gcloud-emulators-dependency
       create_deployments config
       create_deployments volumes
       create_deployments postgres
-      create_deployments redis
+      create_deployments redisdevspace run-pipeline reload-pod
       create_deployments app
       start_dev app --disable-pod-replace
 
   deploy:
     # `devspace deploy` (or `devspace run-pipeline deploy`)
     run: |-
-      # run_dependencies gcloud-emulators-dependency
+      run_dependencies gcloud-emulators-dependency
       build-image app-dev
       create_deployments config
       create_deployments volumes
@@ -107,21 +113,6 @@ pipelines:
       purge_deployments volumes
 
 images:
-  # app:
-  #   image: demo-app
-  #   tags:
-  #     - ${IMAGE_TAG_1}
-  #   dockerfile: ${DOCKER_FILE_NAME}
-  #   context: ./
-  #   rebuildStrategy: default
-  #   buildArgs: # Use for pipeline build-app
-  #     CI_USER_TOKEN: ${CI_USER_TOKEN}
-  #     PROJECT_ID: ${PROJECT_ID}
-  #     REBUILD_IMAGE: ${REBUILD_IMAGE}
-  #   docker:
-  #     disableFallback: true
-  #     preferMinikube: false
-
   app-dev:
     image: ${CLIENT_DEV_IMAGE}
     tags:
@@ -141,12 +132,9 @@ dev: # DEV MODE Configuration
   app: # Prime dev mode
     namespace: ${DEVSPACE_NAMESPACE}
     imageSelector: ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
-    # Replace the container image with this dev-optimized image
     devImage: ${CLIENT_DEV_IMAGE}:${IMAGE_TAG_1}
     workingDir: /app
     sync:
-      # https://www.devspace.sh/docs/configuration/dev/connections/file-sync
-      # Sync files between the localPath:remotePath Pod
       - path: ./
         initialSync: mirrorLocal
         waitInitialSync: true
@@ -168,15 +156,11 @@ dev: # DEV MODE Configuration
       - port: "8085:8085"
 
     ssh:
-      # https://www.devspace.sh/docs/configuration/dev/connections/ssh
-      # Inject a lightweight SSH server into the container" dev run ssh-app
       enabled: true
       localHostname: app.demo.devspace
       localPort: 10333
 
     proxyCommands:
-      # https://www.devspace.sh/docs/configuration/dev/connections/proxy-commands
-      # Make the following commands from my local machine available inside the dev container
       - command: devspace
 
     open: # Auto open url on browser
@@ -192,11 +176,6 @@ hooks:
   name: "Test Connection Emulators, Redis"
 
 commands:
-    registry-up:
-      description: "Port forward to allow docker push Registry Addon"
-      command: |-
-        kubectl port-forward --namespace kube-system service/registry 5000:80
-
     registry-proxy:
       description: "Port forward to allow docker push Registry Addon"
       command: |-
@@ -207,7 +186,7 @@ commands:
       command: |-
         cd gcloud && devspace run-pipeline deploy-emulators
 
-    refix:
+    refix: # devspace run refix
       description: "Remove .devspace cached to rematching emulator pods"
       command: |-
         minikube image tag localhost:5000/yogiyo-gcloud-emulators-local:pubsub localhost:5000/yogiyo-gcloud-emulators-local:datastore
@@ -220,20 +199,20 @@ commands:
         eval "$(ssh-agent -s)"
         ssh app.demo.devspace
 
-    flake8:
+    flake8: # devspace run flake8
       description: "Lint flake8 ."
       command: |-
         eval "$(ssh-agent -s)"
         ssh app.demo.devspace 'mkdir -p tmp'
         ssh app.demo.devspace 'flake8 . > tmp/flake-output.txt' | cat tmp/flake-output.txt
 
-    migration-db:
+    migration-db: # devspace run migration-db
       description: "Migrate Database: devspace run migration-db"
       command: |-
         eval "$(ssh-agent -s)"
         ssh app.demo.devspace python manage.py db upgrade
 
-    vscode-remote:
+    vscode-remote: # devspace run vscode-remote
       description: "Open VSCode remote attach app with new window code by command: devspace run vscode-remote"
       command: |-
         eval "$(ssh-agent -s)"

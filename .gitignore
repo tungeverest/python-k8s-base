@@ -308,7 +308,9 @@ pyrightconfig.json
 .devspace/
 k8s_dev/config/demo-secrets.yaml
 tmp
+/tmp*
 gcloud/.env
 # gcloud/.env.dev
 gcloud/storage
 gcloud/.devspace
+.pytest_cache

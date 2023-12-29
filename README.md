@@ -10,7 +10,7 @@ Please check folders docs to setup.
 - Installed Kubernetes Client versions >=1.27.3
 - Installed Minikube
 - Installed gcloud cli
-- Installed poetry
+- Installed poetry & pyenv
 - Installed devspace >=6.3.2
 
 ---
@@ -45,7 +45,9 @@ Please check folders docs to setup.
 
 ### Restart DEV MODE with without build image (minikube cluster running)
 
-  >`devspace dev` without build image
+  >`devspace dev` start with all resource
+
+  >`devspace run-pipeline start-local` quickly start with only app
 
 **To run fast Dev Mode when restart or power off laptop**
 
